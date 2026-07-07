@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StreamHub — Your Streaming Everything</title>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <!-- Fuse.js for Fuzzy Search -->
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
+    <style>
+        /* ============================================================
+           CSS VARIABLES — Light & Dark Mode
+           ============================================================ */
+        :root {
+            /* Light Mode (default) */
+            --bg-primary: #f1f5f9;
+            --bg-secondary: #ffffff;
+            --bg-card: #ffffff;
+            --bg-controls: #e9eef3;
+            --bg-stats: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #334155;
+            --text-muted: #64748b;
+            --border-color: #cbd5e1;
+            --border-hover: #94a3b8;
+            --shadow: 0 4px 20px rgba(0,0,0,0.06);
+            --logo-bg: #e2e8f0;
+            --tag-bg: #e2e8f0;
+            --tag-text: #1e293b;
+            --support-bg: #e2e8f0;
+            --support-border: #cbd5e1;
+            --support-hover: #d1d5db;
+            --accent: #7c3aed;
+            --accent-light: #a855f7;
+        }
+
+        /* Dark Mode */
+        [data-theme="dark"] {
+            --bg-primary: #0b0e14;
+            --bg-secondary: #141b24;
+            --bg-card: #141b24;
+            --bg-controls: #141b24;
+            --bg-stats: #141b24;
+            --text-primary: #eef2f6;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --border-color: #2a3645;
+            --border-hover: #4b5a72;
+            --shadow: 0 4px 20px rgba(0,0,0,0.3);
+            --logo-bg: #2d3a4f;
+            --tag-bg: #2d3a4f;
+            --tag-text: #cbd5e1;
+            --support-bg: #1e293b;
+            --support-border: #334155;
+            --support-hover: #2d3a4f;
+        }
+
+        /* ----- RESET & BASE ----- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 20px;
+            min-height: 100vh;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        /* ----- HEADER ----- */
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            gap: 20px;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            font-size: 28px;
+            color: var(--accent-light);
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: var(--text-primary);
+        }
+        .logo-text span {
+            color: var(--accent-light);
+        }
+
+        /* ----- RIGHT HEADER: Social Icons + Dark Mode ----- */
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        /* Social Icons */
+        .social-links {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .social-links a {
+            color: var(--text-muted);
+            font-size: 22px;
+            transition: color 0.2s, transform 0.2s;
+            text-decoration: none;
+        }
+        .social-links a:hover {
+            color: var(--accent-light);
+            transform: scale(1.1);
+        }
+        .social-links a.instagram:hover {
+            color: #E4405F;
+        }
+        .social-links a.telegram:hover {
+            color: #26A5E4;
+        }
+
+        /* Dark Mode Toggle */
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            background: var(--support-bg);
+            padding: 6px 14px 6px 10px;
+            border-radius: 40px;
+            border: 1px solid var(--support-border);
+            transition: background 0.2s;
+            user-select: none;
+        }
+        .theme-toggle:hover {
+            background: var(--support-hover);
+        }
+        .theme-toggle i {
+            font-size: 18px;
+            color: var(--text-muted);
+            transition: color 0.3s;
+        }
+        .theme-toggle .toggle-track {
+            width: 40px;
+            height: 22px;
+            background: var(--border-color);
+            border-radius: 30px;
+            position: relative;
+            transition: background 0.3s;
+            flex-shrink: 0;
+        }
+        .theme-toggle .toggle-track .toggle-thumb {
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s, background 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        [data-theme="dark"] .theme-toggle .toggle-track {
+            background: var(--accent);
+        }
+        [data-theme="dark"] .theme-toggle .toggle-track .toggle-thumb {
+            transform: translateX(18px);
+            background: #ffffff;
+        }
+        [data-theme="dark"] .theme-toggle .fa-moon {
+            color: #fbbf24;
+        }
+
+        /* Support Button */
+        .support-btn {
+            background: var(--support-bg);
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+            border: 1px solid var(--support-border);
+        }
+        .support-btn:hover {
+            background: var(--support-hover);
+        }
+        .support-btn i {
+            color: #f472b6;
+        }
+
+        /* ----- CONTROLS ----- */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            background: var(--bg-controls);
+            padding: 12px 20px;
+            border-radius: 60px;
+            border: 1px solid var(--border-color);
+            transition: background 0.3s, border 0.3s;
+        }
+
+        .search-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 200px;
+        }
+        .search-wrapper i {
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+        .search-wrapper input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-size: 16px;
+            width: 100%;
+            padding: 6px 0;
+        }
+        .search-wrapper input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .region-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-card);
+            padding: 6px 16px 6px 12px;
+            border-radius: 40px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .region-selector i {
+            color: var(--text-muted);
+        }
+        .region-selector select {
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 500;
+            outline: none;
+            cursor: pointer;
+        }
+        .region-selector select option {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        /* ----- STATS BAR ----- */
+        .stats-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 25px 40px;
+            background: var(--bg-stats);
+            padding: 14px 24px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            border: 1px solid var(--border-color);
+            transition: background 0.3s, border 0.3s;
+            box-shadow: var(--shadow);
+        }
+        .stat-item {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+        }
+        .stat-number {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+        .stat-item.live .stat-number {
+            color: #34d399;
+        }
+        .stat-item.live i {
+            color: #34d399;
+            font-size: 12px;
+            margin-right: 4px;
+        }
+
+        /* ----- CATEGORY SECTIONS ----- */
+        .category-section {
+            margin-bottom: 40px;
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 18px;
+        }
+        .category-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .category-title .badge {
+            background: var(--tag-bg);
+            font-size: 14px;
+            font-weight: 400;
+            padding: 0 12px;
+            border-radius: 40px;
+            color: var(--tag-text);
+        }
+        .category-meta {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        /* ----- SITE CARDS GRID (with logo) ----- */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        .site-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 18px 16px;
+            transition: all 0.2s ease;
+            cursor: default;
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+            box-shadow: var(--shadow);
+        }
+        .site-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-3px);
+        }
+
+        /* ----- LOGO STYLES ----- */
+        .site-logo {
+            flex-shrink: 0;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: 700;
+            background: var(--logo-bg);
+            color: var(--text-primary);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+        .site-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .site-logo.color-1 { background: #7c3aed; color: #fff; }
+        .site-logo.color-2 { background: #0891b2; color: #fff; }
+        .site-logo.color-3 { background: #d97706; color: #fff; }
+        .site-logo.color-4 { background: #dc2626; color: #fff; }
+        .site-logo.color-5 { background: #059669; color: #fff; }
+        .site-logo.color-6 { background: #9333ea; color: #fff; }
+        .site-logo.color-7 { background: #2563eb; color: #fff; }
+        .site-logo.color-8 { background: #db2777; color: #fff; }
+
+        .site-info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .site-info .site-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .site-info .site-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+        .site-info .site-tag {
+            font-size: 11px;
+            background: var(--tag-bg);
+            padding: 2px 10px;
+            border-radius: 30px;
+            align-self: flex-start;
+            color: var(--tag-text);
+            margin-top: 2px;
+        }
+        .site-info .site-url {
+            font-size: 12px;
+            color: var(--accent-light);
+            text-decoration: none;
+            word-break: break-all;
+        }
+        .site-info .site-url:hover {
+            text-decoration: underline;
+        }
+
+        /* ----- FOOTER ----- */
+        .footer-note {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+            font-size: 13px;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .footer-note i {
+            color: #f472b6;
+        }
+        .footer-note .footer-social a {
+            color: var(--text-muted);
+            margin-left: 14px;
+            font-size: 18px;
+            transition: color 0.2s;
+            text-decoration: none;
+        }
+        .footer-note .footer-social a:hover {
+            color: var(--accent-light);
+        }
+        .footer-note .footer-social a.instagram:hover {
+            color: #E4405F;
+        }
+        .footer-note .footer-social a.telegram:hover {
+            color: #26A5E4;
+        }
+
+        /* ----- RESPONSIVE ----- */
+        @media (max-width: 640px) {
+            .header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .header-right {
+                justify-content: space-between;
+            }
+            .controls {
+                border-radius: 20px;
+                padding: 12px 16px;
+            }
+            .stats-bar {
+                gap: 12px;
+            }
+            .card-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        @media (max-width: 480px) {
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+            .site-card {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            .site-info .site-tag {
+                align-self: center;
+            }
+            .footer-note {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+        }
+
+        .no-results {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px 0;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- ===== HEADER ===== -->
+    <header class="header">
+        <div class="logo-area">
+            <i class="fas fa-play-circle logo-icon"></i>
+            <div class="logo-text">Tep99H<span>blogspot</span></div>
+        </div>
+
+        <div class="header-right">
+            <!-- Social Links: Instagram & Telegram -->
+            <div class="social-links">
+                <a href="https://instagram.com/yourusername" target="_blank" class="instagram" title="Instagram">
+                    <i class="fab fa-instagram"></i>
+                </a>
+                <a href="https://t.me/yourusername" target="_blank" class="telegram" title="Telegram">
+                    <i class="fab fa-telegram-plane"></i>
+                </a>
+            </div>
+
+            <!-- Dark Mode Toggle -->
+            <div class="theme-toggle" id="themeToggle" title="Toggle Dark/Light Mode">
+                <i class="fas fa-moon"></i>
+                <div class="toggle-track">
+                    <div class="toggle-thumb"></div>
+                </div>
+                <i class="fas fa-sun"></i>
+            </div>
+
+            
+        </div>
+    </header>
+
+    <!-- ===== CONTROLS ===== -->
+    <div class="controls">
+        <div class="search-wrapper">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchInput" placeholder="Fuzzy search streams, shows, anime..." autofocus />
+        </div>
+        <div class="region-selector">
+            <i class="fas fa-globe-americas"></i>
+            <select id="regionSelect">
+                <option value="all">All Regions</option>
+                <option value="US" selected>🇺🇸 United States</option>
+                <option value="UK">🇬🇧 United Kingdom</option>
+                <option value="IN">🇮🇳 India</option>
+                <option value="JP">🇯🇵 Japan</option>
+                <option value="KR">🇰🇷 South Korea</option>
+                <option value="DE">🇩🇪 Germany</option>
+                <option value="FR">🇫🇷 France</option>
+                <option value="BR">🇧🇷 Brazil</option>
+                <option value="CA">🇨🇦 Canada</option>
+                <option value="AU">🇦🇺 Australia</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- ===== STATS ===== -->
+    <div class="stats-bar" id="statsBar">
+        <div class="stat-item">
+            <span class="stat-number" id="siteCount">0</span>
+            <span class="stat-label">Sites</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number" id="categoryCount">0</span>
+            <span class="stat-label">Categories</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number" id="regionCount">0</span>
+            <span class="stat-label">Regions</span>
+        </div>
+        <div class="stat-item live">
+            <i class="fas fa-circle"></i>
+            <span class="stat-number" id="liveUsers">275</span>
+            <span class="stat-label">Users in Real-Time</span>
+        </div>
+    </div>
+
+    <!-- ===== DYNAMIC CATEGORIES ===== -->
+    <div id="appContainer"></div>
+
+    <!-- ===== FOOTER ===== -->
+    <div class="footer-note">
+        <span>
+            <i class="fas fa-code"></i> Built with 💜 — Your streaming everything
+        </span>
+        <span class="footer-social">
+            <span id="timestamp">Updated just now</span>
+            <a href="https://instagram.com/yourusername" target="_blank" class="instagram" title="Instagram">
+                <i class="fab fa-instagram"></i>
+            </a>
+            <a href="https://t.me/yourusername" target="_blank" class="telegram" title="Telegram">
+                <i class="fab fa-telegram-plane"></i>
+            </a>
+        </span>
+    </div>
+</div>
+
+<script>
+    // ============================================================
+    // 1. DATA — With "AA" site as per your screenshot
+    // ============================================================
+    const siteData = [{
+        id: 1,
+        name: 'MovieFlix',
+        description: 'HD movies & TV shows, no sign-up.',
+        category: 'Movies & Shows',
+        region: 'US',
+        url: 'https://movieflix.example',
+        tags: ['Free', 'HD'],
+        logo: '🎬'
+    }, {
+        id: 2,
+        name: 'AnimeWave',
+        description: 'Subbed & dubbed anime simulcasts.',
+        category: 'Anime',
+        region: 'JP',
+        url: 'https://animewave.example',
+        tags: ['Sub', 'Dub'],
+        logo: '🌸'
+    }, {
+        id: 3,
+        name: 'MangaPulse',
+        description: 'Massive manga library with daily updates.',
+        category: 'Manga',
+        region: 'US',
+        url: 'https://mangapulse.example',
+        tags: ['Scanlation'],
+        logo: '📚'
+    }, {
+        id: 4,
+        name: 'LiveScore',
+        description: 'Live sports scores and event streams.',
+        category: 'Live TV & Sports',
+        region: 'UK',
+        url: 'https://livescore.example',
+        tags: ['Sports', 'Live'],
+        logo: '⚽'
+    }, {
+        id: 5,
+        name: 'PremiumBox',
+        description: 'Paid legal alternative with 4K quality.',
+        category: 'Paid',
+        region: 'US',
+        url: 'https://premiumbox.example',
+        tags: ['4K', 'Legal'],
+        logo: '💎'
+    }, {
+        id: 6,
+        name: 'APKStore',
+        description: 'Native Android apps for streaming.',
+        category: 'Apps',
+        region: 'IN',
+        url: 'https://apkstore.example',
+        tags: ['Android', 'APK'],
+        logo: '📱'
+    }, {
+        id: 7,
+        name: 'CineHub',
+        description: 'Curated indie films and classics.',
+        category: 'Movies & Shows',
+        region: 'FR',
+        url: 'https://cinehub.example',
+        tags: ['Indie', 'Classic'],
+        logo: '🎞️'
+    }, {
+        id: 8,
+        name: 'AnimeLegacy',
+        description: 'Retro anime from the 80s and 90s.',
+        category: 'Anime',
+        region: 'JP',
+        url: 'https://animelegacy.example',
+        tags: ['Retro', 'Classic'],
+        logo: '🗡️'
+    }, {
+        id: 9,
+        name: 'MangaMix',
+        description: 'Webtoons and manga in one place.',
+        category: 'Manga',
+        region: 'KR',
+        url: 'https://mangamix.example',
+        tags: ['Webtoon'],
+        logo: '🎨'
+    }, {
+        id: 10,
+        name: 'SportsNet',
+        description: 'Live NFL, NBA, and soccer streams.',
+        category: 'Live TV & Sports',
+        region: 'US',
+        url: 'https://sportsnet.example',
+        tags: ['NFL', 'NBA'],
+        logo: '🏀'
+    }, {
+        id: 11,
+        name: 'FlixPremium',
+        description: 'Ad-free premium streaming service.',
+        category: 'Paid',
+        region: 'DE',
+        url: 'https://flixpremium.example',
+        tags: ['Ad-free', 'Premium'],
+        logo: '👑'
+    }, {
+        id: 12,
+        name: 'StreamApp',
+        description: 'Native iOS & Android streaming app.',
+        category: 'Apps',
+        region: 'CA',
+        url: 'https://streamapp.example',
+        tags: ['iOS', 'Android'],
+        logo: '📲'
+    }, {
+        id: 13,
+        name: 'AniStream',
+        description: 'Fast anime streaming with multiple servers.',
+        category: 'Anime',
+        region: 'US',
+        url: 'https://anistream.example',
+        tags: ['Multi-server'],
+        logo: '🌀'
+    }, {
+        id: 14,
+        name: 'MangaHub',
+        description: 'Community-driven manga translations.',
+        category: 'Manga',
+        region: 'BR',
+        url: 'https://mangahub.example',
+        tags: ['PT-BR', 'Community'],
+        logo: '🌐'
+    }, {
+        id: 15,
+        name: 'EuroSport',
+        description: 'Live football and motorsports.',
+        category: 'Live TV & Sports',
+        region: 'UK',
+        url: 'https://eurosport.example',
+        tags: ['Football', 'F1'],
+        logo: '🏎️'
+    }, {
+        id: 16,
+        name: 'BoxOffice',
+        description: 'Latest blockbuster movies in HD.',
+        category: 'Movies & Shows',
+        region: 'US',
+        url: 'https://boxoffice.example',
+        tags: ['New Releases'],
+        logo: '🍿'
+    }, {
+        id: 17,
+        name: 'RetroTV',
+        description: 'Classic TV shows from the 90s.',
+        category: 'Movies & Shows',
+        region: 'AU',
+        url: 'https://retrotv.example',
+        tags: ['Classic'],
+        logo: '📺'
+    }, {
+        id: 18,
+        name: 'AnimeCloud',
+        description: 'Cloud-based anime streaming with sync.',
+        category: 'Anime',
+        region: 'JP',
+        url: 'https://animecloud.example',
+        tags: ['Cloud', 'Sync'],
+        logo: '☁️'
+    }, {
+        id: 19,
+        name: 'MangaPlus',
+        description: 'Official licensed manga chapters.',
+        category: 'Manga',
+        region: 'US',
+        url: 'https://mangaplus.example',
+        tags: ['Official', 'Legal'],
+        logo: '📖'
+    }, {
+        id: 20,
+        name: 'WorldSport',
+        description: 'International sports events live.',
+        category: 'Live TV & Sports',
+        region: 'IN',
+        url: 'https://worldsport.example',
+        tags: ['International'],
+        logo: '🌍'
+    },
+    // ===== "AA" site from your screenshot =====
+    {
+        id: 21,
+        name: 'AA',
+        description: 'Free streaming & blog hub',
+        category: 'Manga',
+        region: 'US',
+        url: 'https://freegram000.blogspot.com',
+        tags: ['Blog', 'Free'],
+        logo: '📝'
+    }];
+
+    // ============================================================
+    // 2. HELPER: Get logo HTML
+    // ============================================================
+    function getLogoHTML(site, index) {
+        const fallbackLetter = site.name.charAt(0).toUpperCase();
+        const colorClass = `color-${(index % 8) + 1}`;
+
+        if (site.logo && (site.logo.startsWith('http') || site.logo.startsWith('/'))) {
+            return `<img src="${site.logo}" alt="${site.name}" loading="lazy" />`;
+        }
+        if (site.logo && site.logo.match(/[\u{1F000}-\u{1FFFF}]/u)) {
+            return `<span style="font-size:24px;">${site.logo}</span>`;
+        }
+        if (site.logo && site.logo.startsWith('fa')) {
+            return `<i class="${site.logo}" style="font-size:22px;"></i>`;
+        }
+        return `<span style="font-size:20px;font-weight:700;">${fallbackLetter}</span>`;
+    }
+
+    // ============================================================
+    // 3. FUZZY SEARCH
+    // ============================================================
+    const fuseOptions = {
+        keys: ['name', 'description', 'category', 'tags'],
+        threshold: 0.3,
+        ignoreLocation: true,
+        includeScore: true
+    };
+    let fuse = new Fuse(siteData, fuseOptions);
+
+    // ============================================================
+    // 4. RENDER FUNCTION
+    // ============================================================
+    function render(filteredData) {
+        const container = document.getElementById('appContainer');
+        container.innerHTML = '';
+
+        const categories = {};
+        filteredData.forEach(item => {
+            if (!categories[item.category]) categories[item.category] = [];
+            categories[item.category].push(item);
+        });
+
+        const uniqueRegions = new Set(filteredData.map(d => d.region));
+        document.getElementById('siteCount').textContent = filteredData.length;
+        document.getElementById('categoryCount').textContent = Object.keys(categories).length;
+        document.getElementById('regionCount').textContent = uniqueRegions.size;
+
+        if (filteredData.length === 0) {
+            container.innerHTML = `<div class="no-results"><i class="fas fa-search" style="font-size:32px;display:block;margin-bottom:12px;"></i> No streams found. Try a different search or region.</div>`;
+            return;
+        }
+
+        let globalIndex = 0;
+        for (const [cat, sites] of Object.entries(categories)) {
+            const section = document.createElement('div');
+            section.className = 'category-section';
+
+            const header = document.createElement('div');
+            header.className = 'category-header';
+            header.innerHTML = `
+                <div class="category-title">
+                    ${cat}
+                    <span class="badge">${sites.length}</span>
+                </div>
+                <div class="category-meta">${sites.length} sites</div>
+            `;
+            section.appendChild(header);
+
+            const grid = document.createElement('div');
+            grid.className = 'card-grid';
+
+            sites.forEach(site => {
+                const card = document.createElement('div');
+                card.className = 'site-card';
+
+                const logoDiv = document.createElement('div');
+                logoDiv.className = `site-logo ${(globalIndex % 8) + 1}`;
+                logoDiv.innerHTML = getLogoHTML(site, globalIndex);
+
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'site-info';
+                infoDiv.innerHTML = `
+                    <div class="site-name">${site.name}</div>
+                    <div class="site-desc">${site.description}</div>
+                    <div class="site-tag">${site.region} · ${site.tags ? site.tags.join(', ') : ''}</div>
+                    <a href="${site.url}" target="_blank" class="site-url" onclick="event.stopPropagation();">${site.url}</a>
+                `;
+
+                card.appendChild(logoDiv);
+                card.appendChild(infoDiv);
+                grid.appendChild(card);
+                globalIndex++;
+            });
+
+            section.appendChild(grid);
+            container.appendChild(section);
+        }
+
+        const now = new Date();
+        document.getElementById('timestamp').textContent =
+            `Updated ${now.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })} · ${now.toLocaleDateString()}`;
+    }
+
+    // ============================================================
+    // 5. FILTER + SEARCH
+    // ============================================================
+    function filterAndRender() {
+        const searchTerm = document.getElementById('searchInput').value.trim();
+        const region = document.getElementById('regionSelect').value;
+
+        let results = siteData;
+        if (region !== 'all') {
+            results = results.filter(item => item.region === region);
+        }
+        if (searchTerm.length > 0) {
+            const fuseResults = fuse.search(searchTerm);
+            const matchedIds = new Set(fuseResults.map(r => r.item.id));
+            results = results.filter(item => matchedIds.has(item.id));
+        }
+        render(results);
+    }
+
+    // ============================================================
+    // 6. DARK MODE TOGGLE
+    // ============================================================
+    function toggleTheme() {
+        const html = document.documentElement;
+        const current = html.getAttribute('data-theme');
+        if (current === 'dark') {
+            html.removeAttribute('data-theme');
+            localStorage.setItem('theme', 'light');
+        } else {
+            html.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+        }
+    }
+
+    // Load saved theme
+    function loadTheme() {
+        const saved = localStorage.getItem('theme');
+        if (saved === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    }
+
+    // ============================================================
+    // 7. LIVE USERS (simulated)
+    // ============================================================
+    function simulateLiveUsers() {
+        const base = 275;
+        const variance = 35;
+        setInterval(() => {
+            const rand = Math.floor(Math.random() * variance * 2) - variance;
+            const newCount = Math.max(50, base + rand);
+            document.getElementById('liveUsers').textContent = newCount;
+        }, 5000);
+    }
+
+    // ============================================================
+    // 8. INIT
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', () => {
+        loadTheme();
+        filterAndRender();
+
+        document.getElementById('searchInput').addEventListener('input', filterAndRender);
+        document.getElementById('regionSelect').addEventListener('change', filterAndRender);
+        document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+
+        simulateLiveUsers();
+    });
+</script>
+
+</body>
+</html>
